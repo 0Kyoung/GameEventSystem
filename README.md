@@ -114,38 +114,25 @@ GameEvent::EventInfoPacketBuilder::Send(zone_group, user);
 - 추가 포함 디렉터리: `$(ProjectDir)`
 - 전처리기 정의: `GAME_EVENT_TEST`
 
-### CMake
-```bash
-mkdir build && cd build
-cmake .. -DCMAKE_BUILD_TYPE=Release
-cmake --build .
-```
-
-### g++ 직접 빌드
-```bash
-g++ -std=c++17 -DGAME_EVENT_TEST -I. \
-    Test/main.cpp \
-    Handlers/*.cpp \
-    Core/EventHandlerRegistry.cpp \
-    Update/*.cpp \
-    -o EventSystemTest
-```
-
 ---
 
-## 테스트 항목 (33개)
+## 테스트 항목 (TC 12개 / 검증 항목 33개)
 
-| TC | 항목 |
-|----|------|
-| TC1 | 핸들러 등록 확인 (15개 이벤트 타입) |
-| TC2 | 미등록 타입 안전 처리 |
-| TC3 | 출석 이벤트 종료 처리 |
-| TC4 | 이미 삭제된 이벤트 종료 무시 |
-| TC5 | 사냥 이벤트 기간 외 처리 |
-| TC6 | 사냥 이벤트 시작 전환 |
-| TC7 | 미션 패스 신규 시작 |
-| TC8 | 미션 패스 종료 처리 |
-| TC9 | FillPacketInfo 호출 |
-| TC10 | EventLoginSyncer / EventInfoPacketBuilder nullptr 안전 처리 |
-| TC11 | 핸들러 미등록 타입 경계 확인 |
-| TC12 | RepeatAttendance MaxStep 리셋 감지 |
+TC 함수는 12개이며, TC1이 이벤트 타입 15개를 루프로 순회하기 때문에
+실제 `CHECK()` 실행 횟수는 33번입니다.
+
+| TC | CHECK 수 | 항목 |
+|----|----------|------|
+| TC1  | 15 | 핸들러 등록 확인 (이벤트 타입 15개 루프 검증) |
+| TC2  | 3  | 미등록 타입 안전 처리 (TimeCheck / LoginSync / FillPacket) |
+| TC3  | 1  | 출석 이벤트 종료 처리 |
+| TC4  | 1  | 이미 삭제된 이벤트 종료 무시 |
+| TC5  | 2  | 사냥 이벤트 기간 외 처리 (미래 / 과거) |
+| TC6  | 1  | 사냥 이벤트 시작 전환 |
+| TC7  | 1  | 미션 패스 신규 시작 |
+| TC8  | 1  | 미션 패스 종료 처리 |
+| TC9  | 1  | FillPacketInfo 호출 |
+| TC10 | 3  | EventLoginSyncer / EventInfoPacketBuilder nullptr 안전 처리 |
+| TC11 | 3  | 핸들러 미등록 타입 경계 확인 (BattlePass / Gacha / FullBanner) |
+| TC12 | 1  | RepeatAttendance MaxStep 리셋 감지 |
+| **합계** | **33** | |

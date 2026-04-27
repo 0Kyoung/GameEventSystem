@@ -2,15 +2,27 @@
 .vs/
 *.user
 *.suo
+*.aps
+*.ncb
+*.sdf
+*.opensdf
+ipch/
 x64/
 x86/
 Debug/
 Release/
 
 # Build
+x64/
+x86/
+Debug/
+Release/
 build/
 *.exe
 *.obj
 *.pdb
+*.ilk
+*.lib
+*.exp
 
 CMakeLists.txt
