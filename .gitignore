@@ -1,0 +1,16 @@
+# Visual Studio
+.vs/
+*.user
+*.suo
+x64/
+x86/
+Debug/
+Release/
+
+# Build
+build/
+*.exe
+*.obj
+*.pdb
+
+CMakeLists.txt

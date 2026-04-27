@@ -1,0 +1,117 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="소스 파일">
+      <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
+      <Extensions>cpp;c;cc;cxx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
+    </Filter>
+    <Filter Include="헤더 파일">
+      <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
+      <Extensions>h;hh;hpp;hxx;hm;inl;inc;ipp;xsd</Extensions>
+    </Filter>
+    <Filter Include="리소스 파일">
+      <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
+      <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
+    </Filter>
+    <Filter Include="Core">
+      <UniqueIdentifier>{69e7136d-505e-4150-8452-4152638e48c1}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Handler">
+      <UniqueIdentifier>{6c5324c0-d06f-46ae-9c66-0bcbd9d90633}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Update">
+      <UniqueIdentifier>{fbb5af12-0450-4584-94aa-fdcbffb571e8}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Test">
+      <UniqueIdentifier>{1140db25-2b01-49a5-bc3f-89469b3358a5}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="Core\EventHandlerRegistry.cpp">
+      <Filter>Core</Filter>
+    </ClCompile>
+    <ClCompile Include="Handlers\BingoEventHandler.cpp">
+      <Filter>Handler</Filter>
+    </ClCompile>
+    <ClCompile Include="Handlers\HuntingEventHandler.cpp">
+      <Filter>Handler</Filter>
+    </ClCompile>
+    <ClCompile Include="Handlers\MissionPassEventHandler.cpp">
+      <Filter>Handler</Filter>
+    </ClCompile>
+    <ClCompile Include="Handlers\SiegeEveEventHandler.cpp">
+      <Filter>Handler</Filter>
+    </ClCompile>
+    <ClCompile Include="Handlers\AttendanceEventHandler.cpp">
+      <Filter>Handler</Filter>
+    </ClCompile>
+    <ClCompile Include="Handlers\BenedictionEventHandler.cpp">
+      <Filter>Handler</Filter>
+    </ClCompile>
+    <ClCompile Include="Update\EventUpdateChecker.cpp">
+      <Filter>Update</Filter>
+    </ClCompile>
+    <ClCompile Include="Test\main.cpp">
+      <Filter>Test</Filter>
+    </ClCompile>
+    <ClCompile Include="Update\EventInfoPacketBuilder.cpp">
+      <Filter>Update</Filter>
+    </ClCompile>
+    <ClCompile Include="Update\EventLoginSyncer.cpp">
+      <Filter>Update</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="Core\EventType.h">
+      <Filter>Core</Filter>
+    </ClInclude>
+    <ClInclude Include="Core\IEventHandler.h">
+      <Filter>Core</Filter>
+    </ClInclude>
+    <ClInclude Include="Core\EventContext.h">
+      <Filter>Core</Filter>
+    </ClInclude>
+    <ClInclude Include="Core\EventDispatcher.h">
+      <Filter>Core</Filter>
+    </ClInclude>
+    <ClInclude Include="Handlers\BingoEventHandler.h">
+      <Filter>Handler</Filter>
+    </ClInclude>
+    <ClInclude Include="Handlers\HuntingEventHandler.h">
+      <Filter>Handler</Filter>
+    </ClInclude>
+    <ClInclude Include="Handlers\MissionPassEventHandler.h">
+      <Filter>Handler</Filter>
+    </ClInclude>
+    <ClInclude Include="Handlers\SiegeEveEventHandler.h">
+      <Filter>Handler</Filter>
+    </ClInclude>
+    <ClInclude Include="Handlers\AttendanceEventHandler.h">
+      <Filter>Handler</Filter>
+    </ClInclude>
+    <ClInclude Include="Handlers\BenedictionEventHandler.h">
+      <Filter>Handler</Filter>
+    </ClInclude>
+    <ClInclude Include="Update\EventUpdateChecker.h">
+      <Filter>Update</Filter>
+    </ClInclude>
+    <ClInclude Include="Core\EventHandlerRegistry.h">
+      <Filter>Core</Filter>
+    </ClInclude>
+    <ClInclude Include="Core\GameTypes.h">
+      <Filter>Core</Filter>
+    </ClInclude>
+    <ClInclude Include="Test\MockTypes.h">
+      <Filter>Test</Filter>
+    </ClInclude>
+    <ClInclude Include="Update\EventInfoPacketBuilder.h">
+      <Filter>Update</Filter>
+    </ClInclude>
+    <ClInclude Include="Update\EventLoginSyncer.h">
+      <Filter>Update</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="README.md" />
+  </ItemGroup>
+</Project>
