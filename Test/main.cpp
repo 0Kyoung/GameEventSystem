@@ -4,8 +4,6 @@
 #include <chrono>
 #include <ctime>
 #include <string>
-#include <io.h>
-#include <fcntl.h>
 
 #include "../Core/EventType.h"
 #include "../Core/EventContext.h"
