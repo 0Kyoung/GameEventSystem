@@ -1,8 +1,11 @@
+#include <windows.h>
 #include <iostream>
 #include <cassert>
 #include <chrono>
 #include <ctime>
 #include <string>
+#include <io.h>
+#include <fcntl.h>
 
 #include "../Core/EventType.h"
 #include "../Core/EventContext.h"
@@ -335,6 +338,10 @@ void TC12_RepeatAttendance_MaxStepReset(EventDispatcher& d)
 
 int main()
 {
+	// 콘솔 출력 UTF-8 설정
+	SetConsoleOutputCP(CP_UTF8);
+	SetConsoleCP(CP_UTF8);
+
     std::cout << "================================\n";
     std::cout << "  GameEventSystem 테스트\n";
     std::cout << "================================\n";
