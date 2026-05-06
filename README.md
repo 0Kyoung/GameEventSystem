@@ -2,6 +2,20 @@
 
 게임 서버의 유저 이벤트 처리 시스템을 핸들러 패턴으로 리팩토링한 샘플 프로젝트입니다.
 
+## 개발 배경
+
+미르4 라이브 서비스를 진행하면서 이벤트 시스템을 지속적으로 확장해온 경험에서 출발했습니다.
+
+초기 설계 시점에는 이벤트 타입 수가 제한적이었으나, 서비스가 성장하면서
+출석·목표 달성·빙고·미션 패스·공성 전야제 등 다양한 이벤트가 지속적으로 추가되었습니다.
+그 결과 초기의 switch-case 기반 구조가 비대해졌고,
+버전별 조건 분기를 처리하기 위한 `#define` 플래그가 누적되면서 소스 복잡도가 점점 높아졌습니다.
+
+새 이벤트 타입 하나를 추가하려면 서로 다른 역할을 가진 3개의 거대 함수를 동시에 수정해야 했고,
+각 함수에 중복된 분기 로직이 혼재되어 사이드 이펙트를 파악하기 어려운 구조가 되었습니다.
+
+이 문제를 해결하기 위해 핸들러 패턴 기반의 구조로 리팩토링한 것이 이 프로젝트입니다.
+
 ---
 
 ## 기존 구조의 문제
@@ -86,7 +100,66 @@ class IEventHandler {
     virtual bool         FillPacketInfo(const EventContext& ctx, void* out) const = 0;
 };
 ```
+## 설계 트레이드오프
 
+### 패턴 선택 이유
+
+리팩토링 구조를 결정할 때 세 가지 패턴을 검토했습니다.
+
+| 패턴 | 검토 결과 |
+|---|---|
+| **Visitor 패턴** | 이벤트 타입이 고정적일 때 유리하나, 타입이 지속적으로 추가되는 구조에서는 수정 범위가 오히려 넓어짐 |
+| **Command 패턴** | 실행 단위를 객체화하기에 적합하나, 로그인 동기화/시간 체크/패킷 구성이라는 3가지 역할을 하나의 명령으로 묶기 어색함 |
+| **Handler 패턴 (채택)** | 기존 3개 함수(`CheckUserEvent`, `CheckEventLoginData`, `SendUserEventInfo`)가 핸들러 인터페이스 3개 메서드로 자연스럽게 대응되어 기존 코드 흐름을 유지하면서 구조를 분리할 수 있었음 |
+
+기존 코드와의 1:1 대응이 가능했던 점이 핵심 선택 이유였습니다.
+실제 서버 코드베이스에 적용할 때 호출부 변경을 최소화할 수 있고,
+팀원들이 기존 함수 흐름을 그대로 이해한 채로 새 구조에 적응할 수 있다는 점도 고려했습니다.
+
+### 현재 구조의 한계
+
+- 이벤트 핸들러가 항상 3개 메서드를 모두 구현해야 함 (일부 이벤트는 `OnLoginSync`가 불필요할 수 있음)
+- 핸들러 간 공통 로직(예: 이벤트 기간 체크)이 중복될 경우 별도 Base 클래스 분리가 필요
+
+---
+
+## 아키텍처 흐름도
+ 
+### 런타임 호출 흐름
+ 
+```mermaid
+flowchart TD
+    A([Server Update Tick]) --> B[EventUpdateChecker::Check]
+    L([유저 로그인]) --> C[EventLoginSyncer::Sync]
+    P([패킷 전송 요청]) --> D[EventInfoPacketBuilder::Send]
+ 
+    B --> E[EventDispatcher::Dispatch\nOnTimeCheck]
+    C --> F[EventDispatcher::Dispatch\nOnLoginSync]
+    D --> G[EventDispatcher::Dispatch\nFillPacketInfo]
+ 
+    E --> H{타입별 핸들러 조회}
+    F --> H
+    G --> H
+ 
+    H --> I[AttendanceEventHandler]
+    H --> J[BingoEventHandler]
+    H --> K[MissionPassEventHandler]
+    H --> L2[SiegeEveEventHandler]
+    H --> M[HuntingEventHandler]
+    H --> N[BenedictionEventHandler]
+```
+ 
+### 서버 초기화 흐름
+ 
+```mermaid
+flowchart LR
+    A([서버 시작]) --> B[RegisterAllEventHandlers]
+    B --> C[EventHandlerRegistry]
+    C --> D[EventDispatcher]
+    D --> E["unordered_map\n(EventType → Handler)"]
+    E --> F["이후 Dispatch 호출 시\nO(1) 핸들러 조회"]
+```
+ 
 ---
 
 ## 사용 예시
