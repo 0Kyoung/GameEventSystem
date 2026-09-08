@@ -1,4 +1,4 @@
-#include "NetworkServer.h"
+﻿#include "NetworkServer.h"
 #include "../Persistence/AsyncDbJobQueue.h"
 #include "../Update/EventUpdateChecker.h"
 #include <iostream>
@@ -22,8 +22,11 @@ namespace GameNet
             return false;
         }
 
+        // 프로젝트 문자 집합이 MultiByte라 매크로 WSASocket()이 WSASocketA로 풀리는데,
+        // 최신 Windows SDK(10.0.26100+)에서 WSASocketA가 deprecated(C4996) 처리된다.
+        // 문자열 인자가 없는 함수라 A/W 차이가 의미 없으므로 WSASocketW를 직접 호출해 회피한다.
         listen_socket_ = WSASocketW(AF_INET, SOCK_STREAM, IPPROTO_TCP,
-                                    nullptr, 0, WSA_FLAG_OVERLAPPED);
+                                     nullptr, 0, WSA_FLAG_OVERLAPPED);
         if (listen_socket_ == INVALID_SOCKET)
         {
             std::cerr << "[NetworkServer] WSASocketW failed: " << WSAGetLastError() << "\n";

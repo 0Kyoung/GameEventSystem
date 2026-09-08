@@ -167,5 +167,8 @@
     <None Include="Test\PersistenceTest.cpp">
       <Filter>Test</Filter>
     </None>
+    <None Include="Test\NetworkSmokeTest.ps1">
+      <Filter>Test</Filter>
+    </None>
   </ItemGroup>
 </Project>

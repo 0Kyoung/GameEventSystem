@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 // ─────────────────────────────────────────────────────────────────────────────
 // Windows 전용 (IOCP). Visual Studio + Winsock2로 빌드한다.
 //

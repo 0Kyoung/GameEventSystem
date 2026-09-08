@@ -1,4 +1,4 @@
-#include "DbTypes.h"
+﻿#include "DbTypes.h"
 
 #ifdef DB_TEST
     #include "MockDb.h"

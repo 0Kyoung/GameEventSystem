@@ -80,8 +80,9 @@ GameEventSystem/
 │
 └── Test/
     ├── MockTypes.h               빌드용 Mock 타입 정의
-    ├── main.cpp                  Core/Handlers/Update 테스트 33개 (VS, Windows)
-    └── PersistenceTest.cpp       Persistence 계층 테스트 11개 (크로스플랫폼, g++)
+    ├── main.cpp                  Core/Handlers/Update 테스트 33개 + 서버 모드(--server) 진입점
+    ├── PersistenceTest.cpp       Persistence 계층 테스트 11개 (크로스플랫폼, g++)
+    └── NetworkSmokeTest.ps1      Network 계층 수동 접속 테스트 스크립트 (PowerShell)
 ```
 
 ---
@@ -206,15 +207,34 @@ sequenceDiagram
 | Job Queue + 메인 스레드 반영 | DB 콜백에서 바로 게임 상태 수정 | 콜백을 워커 스레드에서 바로 실행하면 게임 로직과 DB I/O가 같은 객체를 동시에 건드리는 레이스 컨디션이 생김. 반영 시점을 메인 스레드 틱으로 강제해 원천 차단 |
 | DB_TEST 빌드 스위치 | 항상 실제 MySQL 필요 | `Core/GameTypes.h`가 이미 쓰던 패턴(`GAME_EVENT_TEST`)을 DB 계층에도 그대로 적용 — 리뷰어가 MySQL 서버 없이도 로직을 실행/검증할 수 있음 |
 
-### 검증 범위 (정직하게 밝힙니다)
+### 접속 테스트 (수동 smoke test)
+
+Network 계층은 실제 소켓 통신이 필요해 자동화된 단위 테스트로 구성하기 어렵다고
+판단해, 대신 실제로 접속해서 눈으로 확인할 수 있는 스크립트를 준비했습니다.
+
+```
+# 1) 서버 모드로 실행 (둘 중 하나)
+GameEventSystem.exe --server 9000
+#   또는 VS 프로젝트 속성 > 디버깅 > 명령 인수에 "--server 9000" 입력 후 Ctrl+F5
+
+# 2) 새 콘솔에서 접속 테스트
+powershell -ExecutionPolicy Bypass -File Test\NetworkSmokeTest.ps1
+```
+
+`CS_LOGIN` → `SC_LOGIN_ACK`, `CS_EVENT_INFO_REQ` → `SC_EVENT_INFO_ACK` 왕복이
+`Network/PacketDefs.h`의 오퍼코드/바이트 레이아웃 그대로 오가는지 확인합니다.
+로그인 성공 시 내부적으로 `EventDbBridge::LoadUserEventsAsync` → 다음 서버 틱의
+`ProcessCompletions()` → `EventLoginSyncer::Sync()`가 실제로 한 번씩 실행됩니다.
+
+### 검증 범위
 
 - **Persistence/** (DB 계층): 이 저장소를 작성한 환경에서 g++로 직접 컴파일하고
   **ThreadSanitizer**까지 통과시켜 검증했습니다 (`Test/PersistenceTest.cpp`, 11개 항목 전부 통과).
   실제 MySQL 연동(`MySqlConnectionPool`)은 로컬에 DB가 없어 컴파일 단위까지만 확인했습니다.
-- **Network/** (IOCP 계층): Windows/Winsock2 전용 API라 이 저장소를 작성한 환경에서는
-  컴파일 자체가 불가능해, Visual Studio로 직접 빌드해 확인하지는 못했습니다. API 사용법을
-  최대한 정확히 지켜 작성했지만, 컴파일러가 바로 걸러줄 수준의 사소한 오탈자가 남아
-  있을 가능성은 있습니다.
+- **Network/** (IOCP 계층): Windows/Winsock2 전용 API라 작성 당시엔 컴파일 검증을 못 했지만,
+  Visual Studio에서 직접 빌드하고 `NetworkSmokeTest.ps1`로 실제 접속 테스트까지 통과시켰습니다.
+  CS_LOGIN → SC_LOGIN_ACK, CS_EVENT_INFO_REQ → SC_EVENT_INFO_ACK 왕복이 정상 동작하며,
+  로그인 시 비동기 DB 조회 → EventLoginSyncer::Sync() 호출까지 실제로 이어지는 것을 확인했습니다.
 
 ---
 
@@ -362,7 +382,7 @@ TC 함수는 12개이며, TC1이 이벤트 타입 15개를 루프로 순회하�
 | TC4 | 2 | 유저 20명 동시 로그인 — 결과 교차 오염 없음 |
 | **합계** | **11** | |
 
-Network(IOCP) 계층은 실제 소켓 통신을 필요로 해 이 저장소만으로는 자동화된
-단위 테스트를 구성하기 어렵다고 판단해 별도 테스트를 두지 않았습니다. 대신
-코드 자체에 설계 의도와 각 분기의 이유를 주석으로 남겨, 리뷰 시 흐름을
-따라가기 쉽도록 했습니다.
+Network(IOCP) 계층은 실제 소켓 통신이 필요해 자동화된 단위 테스트로 구성하기는
+어렵다고 판단해, 대신 `Test/NetworkSmokeTest.ps1`로 실제 접속·응답까지 확인했습니다
+(위 "접속 테스트" 항목 참고). 코드 자체에도 설계 의도와 각 분기의
+이유를 주석으로 남겨, 리뷰 시 흐름을 따라가기 쉽도록 했습니다.

@@ -1,4 +1,4 @@
-#include "AsyncDbJobQueue.h"
+﻿#include "AsyncDbJobQueue.h"
 
 namespace GameDb
 {

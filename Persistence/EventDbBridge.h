@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 // ─────────────────────────────────────────────────────────────────────────────
 // GameEventSystem(Core/Update/Handlers)과 DB 계층(AsyncDbJobQueue) 사이의 접착 코드.
 //

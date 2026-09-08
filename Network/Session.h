@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 // Windows 전용 (IOCP).
 #include "IoContext.h"
 #include "../Core/GameTypes.h"

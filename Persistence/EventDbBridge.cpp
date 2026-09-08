@@ -1,4 +1,4 @@
-#include "EventDbBridge.h"
+﻿#include "EventDbBridge.h"
 #include "DbTypes.h"
 #include "AsyncDbJobQueue.h"
 

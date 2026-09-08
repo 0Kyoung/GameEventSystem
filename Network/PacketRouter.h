@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 // Windows 전용 (IOCP 세션을 다루므로).
 //
 // 이 파일이 이 확장의 핵심 연결부다.

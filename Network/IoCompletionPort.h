@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 // Windows 전용 (IOCP).
 //
 // GetQueuedCompletionStatus() 루프를 도는 워커 스레드 풀.

@@ -1,4 +1,4 @@
-#include "MySqlConnectionPool.h"
+﻿#include "MySqlConnectionPool.h"
 
 #ifndef DB_TEST
 #include <mysql/mysql.h>

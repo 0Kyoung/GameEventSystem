@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 // Windows 전용 (IOCP).
 //
 // 서버 전체를 묶는 최상위 객체.

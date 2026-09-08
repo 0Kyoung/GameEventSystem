@@ -1,3 +1,4 @@
+#define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 #include <iostream>
 #include <cassert>
@@ -9,6 +10,7 @@
 #include "../Core/EventContext.h"
 #include "../Core/IEventHandler.h"
 #include "../Core/EventDispatcher.h"
+#include "../Core/EventHandlerRegistry.h"
 #include "../Handlers/AttendanceEventHandler.h"
 #include "../Handlers/BingoEventHandler.h"
 #include "../Handlers/MissionPassEventHandler.h"
@@ -18,6 +20,8 @@
 #include "../Update/EventUpdateChecker.h"
 #include "../Update/EventLoginSyncer.h"
 #include "../Update/EventInfoPacketBuilder.h"
+#include "../Network/NetworkServer.h"
+#include <thread>
 // MockTypes.h는 GameTypes.h를 통해 자동 포함됨 (-DGAME_EVENT_TEST 빌드 시)
 
 using namespace GameEvent;
@@ -332,10 +336,46 @@ void TC12_RepeatAttendance_MaxStepReset(EventDispatcher& d)
           "MaxStep 리셋 처리 (종료 Notified 아님)");
 }
 
+// ─── 네트워크 서버 수동 테스트 모드 ─────────────────────────────────────────────
+//
+// 실행 시 인자로 "--server [port]"를 주면, 단위 테스트 대신 실제로 IOCP 서버를
+// 띄운 채로 대기한다. 이 상태에서 PowerShell 등으로 접속해 CS_LOGIN 등을
+// 보내보면 네트워크 → 비동기 DB → GameEventSystem 흐름이 실제로 동작하는지
+// 눈으로 확인할 수 있다. (README의 "네트워크 계층 접속 테스트" 참고)
+static int RunNetworkServerMode(uint16_t port)
+{
+    SetConsoleOutputCP(CP_UTF8);
+    SetConsoleCP(CP_UTF8);
+
+    GameEvent::RegisterAllEventHandlers();
+
+    GameNet::NetworkServer server;
+    if (!server.Start(port, /*io_worker_count=*/4))
+    {
+        std::cerr << "서버 시작 실패\n";
+        return 1;
+    }
+
+    std::cout << "포트 " << port << "에서 대기 중입니다. 종료하려면 콘솔 창을 닫으세요.\n";
+
+    // 100ms 주기로 DB 완료 반영 + EventUpdateChecker 수행
+    for (;;)
+    {
+        server.Tick();
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    }
+}
+
 // ─── main ─────────────────────────────────────────────────────────────────────
 
-int main()
+int main(int argc, char** argv)
 {
+    if (argc >= 2 && std::string(argv[1]) == "--server")
+    {
+        const uint16_t port = (argc >= 3) ? static_cast<uint16_t>(std::stoi(argv[2])) : 9000;
+        return RunNetworkServerMode(port);
+    }
+
 	// 콘솔 출력 UTF-8 설정
 	SetConsoleOutputCP(CP_UTF8);
 	SetConsoleCP(CP_UTF8);

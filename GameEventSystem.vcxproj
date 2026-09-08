@@ -181,6 +181,7 @@
   <ItemGroup>
     <None Include="README.md" />
     <None Include="Test\PersistenceTest.cpp" />
+    <None Include="Test\NetworkSmokeTest.ps1" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
