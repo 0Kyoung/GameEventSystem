@@ -2,6 +2,11 @@
 
 게임 서버의 유저 이벤트 처리 시스템을 핸들러 패턴으로 리팩토링한 샘플 프로젝트입니다.
 
+`Core` / `Handlers` / `Update`는 실제 서버 코드의 리팩토링 흐름을 그대로 옮긴 것이고,
+`Network`(IOCP 기반 비동기 네트워크)와 `Persistence`(비동기 DB 처리)는 이 리팩토링 구조가
+실제 서비스에서 어떻게 "네트워크 수신 → 비동기 DB 조회 → 이벤트 시스템 반영"으로
+이어지는지 보여주기 위해 추가한 확장입니다.
+
 ## 개발 배경
 
 미르4 라이브 서비스를 진행하면서 이벤트 시스템을 지속적으로 확장해온 경험에서 출발했습니다.
@@ -58,9 +63,25 @@ GameEventSystem/
 │   ├── EventLoginSyncer          CheckEventLoginData 대체 (로그인 동기화)
 │   └── EventInfoPacketBuilder    SendUserEventInfo 대체 (패킷 구성)
 │
+├── Persistence/                  ── 비동기 DB 처리 (확장) ──
+│   ├── DbTypes.h/cpp              DB_TEST 빌드 스위치 (MockDb ↔ MySQL)
+│   ├── MockDb.h                   인메모리 Mock DB (테스트/포트폴리오 빌드)
+│   ├── MySqlConnectionPool.h/cpp  MySQL C API 기반 커넥션 풀 (실서버 빌드)
+│   ├── AsyncDbJobQueue.h/cpp      워커 스레드 + 메인 스레드 완료 큐
+│   └── EventDbBridge.h/cpp        DB 로드 결과를 GameEventSystem에 반영
+│
+├── Network/                      ── 비동기 네트워크 (확장, Windows/IOCP) ──
+│   ├── PacketDefs.h               패킷 헤더/오퍼코드
+│   ├── IoContext.h                Overlapped I/O 컨텍스트
+│   ├── Session.h/cpp              접속별 recv/send, TCP 스트림 재조립
+│   ├── IoCompletionPort.h/cpp     IOCP 워커 스레드 풀
+│   ├── PacketRouter.h/cpp         오퍼코드 → GameEventSystem 진입점 연결
+│   └── NetworkServer.h/cpp        accept, Tick(서버 틱) 진입점
+│
 └── Test/
     ├── MockTypes.h               빌드용 Mock 타입 정의
-    └── main.cpp                  테스트 33개
+    ├── main.cpp                  Core/Handlers/Update 테스트 33개 (VS, Windows)
+    └── PersistenceTest.cpp       Persistence 계층 테스트 11개 (크로스플랫폼, g++)
 ```
 
 ---
@@ -123,6 +144,80 @@ class IEventHandler {
 
 ---
 
+## 확장: 네트워크 계층과 비동기 DB 연동
+
+### 왜 추가했는가
+
+`EventLoginSyncer::Sync()`는 "유저 이벤트 데이터가 이미 메모리(`UserEventContainer`)에
+로드되어 있다"는 것을 전제로 동작합니다. 하지만 실제 로그인 시퀀스에서는 그 전제를
+만족시키기 위해 DB에서 `user_event` 테이블을 먼저 읽어와야 합니다. 이 조회를 게임
+스레드에서 동기로 처리하면 로그인 처리 한 건 때문에 서버 틱 전체가 멎습니다.
+
+`Network/`와 `Persistence/`는 그 앞뒤를 채운 것입니다. 클라이언트가 보낸 로그인 패킷이
+네트워크 계층에 도착한 뒤, 비동기로 DB를 조회하고, 그 결과를 안전하게 메인 스레드에
+반영한 다음에야 기존 `EventLoginSyncer::Sync()`가 호출되도록 연결했습니다.
+
+### 스레드 경계가 핵심이다
+
+이 확장에서 가장 신경 쓴 부분은 새 기능 자체가 아니라 **스레드 경계**입니다.
+
+- IOCP 워커 스레드: 소켓 I/O만 담당
+- DB 워커 스레드: 블로킹 DB 쿼리만 담당 (`AsyncDbJobQueue`)
+- 메인(게임) 스레드: `CUser`, `UserEventContainer` 등 게임 상태를 만지는 코드는
+  **반드시 여기서만** 실행 (`AsyncDbJobQueue::ProcessCompletions()`가 그 경계)
+
+`AsyncDbJobQueue::Enqueue()`는 "워커에서 할 일"과 "메인 스레드에서 할 일"을 처음부터
+분리해서 받기 때문에, 상위 코드(`EventDbBridge`)는 이 경계를 몰라도 자연스럽게 지키게
+됩니다. `Test/PersistenceTest.cpp`의 TC1은 이 경계가 실제로 지켜지는지
+(`ProcessCompletions()` 호출 전에는 게임 상태가 절대 바뀌지 않는지)를 직접 검증합니다.
+
+### 로그인 시퀀스
+
+```mermaid
+sequenceDiagram
+    participant C as Client
+    participant IOCP as IoCompletionPort (Recv)
+    participant R as PacketRouter
+    participant Q as AsyncDbJobQueue
+    participant DB as MySQL / MockDb
+    participant M as 메인 스레드 (Tick)
+    participant ES as GameEventSystem
+
+    C->>IOCP: CS_LOGIN (uid)
+    IOCP->>R: Route(CS_LOGIN)
+    R->>Q: Enqueue(work, on_main_done)
+    Note over Q,DB: 워커 스레드 — 게임 스레드는 막히지 않음
+    Q->>DB: SELECT * FROM user_event WHERE uid=?
+    DB-->>Q: rows
+    Note over M: 다음 서버 틱
+    M->>Q: ProcessCompletions()
+    Q->>ES: UserEventContainer.Insert(rows)
+    Q->>ES: EventLoginSyncer::Sync(zone, user)
+    ES->>R: (핸들러별 OnLoginSync 처리)
+    R->>C: SC_LOGIN_ACK
+```
+
+### 설계 트레이드오프 (네트워크/DB)
+
+| 결정 | 검토한 대안 | 선택 이유 |
+|---|---|---|
+| IOCP | select/epoll류 이벤트 루프 | 국내 온라인 게임 서버가 대부분 Windows 기반이라, 완료 기반(completion-based) 모델과 커널 스레드풀을 그대로 활용할 수 있는 IOCP가 실서비스 환경과 가장 맞닿아 있음. 워커 스레드 수도 코어 수에 맞춰 그대로 활용 가능 |
+| accept 전용 블로킹 스레드 | AcceptEx 완전 비동기 | 게임 서버는 패킷 처리량 대비 신규 접속 빈도가 훨씬 낮아, AcceptEx의 소켓 프리 생성/큐잉 복잡도를 감수할 이유가 적음. 접속 폭주 대응이 필요해지면 이 지점만 교체 |
+| Job Queue + 메인 스레드 반영 | DB 콜백에서 바로 게임 상태 수정 | 콜백을 워커 스레드에서 바로 실행하면 게임 로직과 DB I/O가 같은 객체를 동시에 건드리는 레이스 컨디션이 생김. 반영 시점을 메인 스레드 틱으로 강제해 원천 차단 |
+| DB_TEST 빌드 스위치 | 항상 실제 MySQL 필요 | `Core/GameTypes.h`가 이미 쓰던 패턴(`GAME_EVENT_TEST`)을 DB 계층에도 그대로 적용 — 리뷰어가 MySQL 서버 없이도 로직을 실행/검증할 수 있음 |
+
+### 검증 범위 (정직하게 밝힙니다)
+
+- **Persistence/** (DB 계층): 이 저장소를 작성한 환경에서 g++로 직접 컴파일하고
+  **ThreadSanitizer**까지 통과시켜 검증했습니다 (`Test/PersistenceTest.cpp`, 11개 항목 전부 통과).
+  실제 MySQL 연동(`MySqlConnectionPool`)은 로컬에 DB가 없어 컴파일 단위까지만 확인했습니다.
+- **Network/** (IOCP 계층): Windows/Winsock2 전용 API라 이 저장소를 작성한 환경에서는
+  컴파일 자체가 불가능해, Visual Studio로 직접 빌드해 확인하지는 못했습니다. API 사용법을
+  최대한 정확히 지켜 작성했지만, 컴파일러가 바로 걸러줄 수준의 사소한 오탈자가 남아
+  있을 가능성은 있습니다.
+
+---
+
 ## 아키텍처 흐름도
  
 ### 런타임 호출 흐름
@@ -178,18 +273,65 @@ GameEvent::EventUpdateChecker::Check(now_tp, zone_group, user);
 GameEvent::EventInfoPacketBuilder::Send(zone_group, user);
 ```
 
+### 네트워크 + 비동기 DB 확장 사용 예시
+
+```cpp
+// 서버 초기화 시
+GameEvent::RegisterAllEventHandlers();
+
+GameNet::NetworkServer server;
+server.Start(/*port=*/9000, /*io_worker_count=*/4);
+
+// 메인 루프 (예: 100ms 주기)
+while (running)
+{
+    server.Tick(); // DB 완료 반영 + EventUpdateChecker::Check 일괄 수행
+    std::this_thread::sleep_for(std::chrono::milliseconds(100));
+}
+
+// CS_LOGIN 패킷 수신 시 내부적으로 아래 순서가 자동으로 일어남
+//   1) PacketRouter::HandleLogin
+//   2) GameDb::EventDbBridge::LoadUserEventsAsync (워커 스레드에서 DB 조회)
+//   3) 다음 Tick()에서 ProcessCompletions() → UserEventContainer 반영
+//   4) GameEvent::EventLoginSyncer::Sync(zone, user)
+//   5) SC_LOGIN_ACK 응답 전송
+```
+
 ---
 
 ## 빌드 방법
 
-### VS2017 이상
+### VS2017 이상 (전체 프로젝트: Core/Handlers/Update/Network/Persistence)
 - C++ 언어 표준: `/std:c++17`
 - 추가 포함 디렉터리: `$(ProjectDir)`
-- 전처리기 정의: `GAME_EVENT_TEST`
+- 전처리기 정의: `GAME_EVENT_TEST;DB_TEST`
+  - `DB_TEST`를 빼면 `Persistence/MySqlConnectionPool.cpp`가 실제 MySQL C API
+    (`mysql.h`)를 필요로 합니다. MySQL Connector/C 헤더 경로 추가 및
+    `mysqlclient.lib` 링크가 필요합니다.
+- `Network/` 코드는 Winsock2/IOCP를 사용하므로 Windows 빌드에서만 컴파일됩니다.
+  라이브러리 링크(`Ws2_32.lib`, `Mswsock.lib`)는 `NetworkServer.cpp` 상단의
+  `#pragma comment(lib, ...)`로 처리되어 있어 프로젝트 설정을 따로 건드릴 필요는
+  없습니다.
+
+### Persistence 계층만 별도 검증 (크로스플랫폼, g++)
+
+`Network/`(Windows 전용)와 달리 `Persistence/`는 표준 C++만 사용해서, 아래 명령으로
+리눅스/맥에서도 그대로 빌드·실행할 수 있습니다. 이 저장소는 이 명령으로 컴파일과
+실행, 그리고 `-fsanitize=thread`(ThreadSanitizer)까지 통과한 상태입니다.
+
+```bash
+g++ -std=c++17 -DGAME_EVENT_TEST -DDB_TEST -I. -pthread \
+    Test/PersistenceTest.cpp Persistence/AsyncDbJobQueue.cpp \
+    Persistence/EventDbBridge.cpp Persistence/DbTypes.cpp \
+    -o persistence_test
+./persistence_test
+```
 
 ---
 
-## 테스트 항목 (TC 12개 / 검증 항목 33개)
+## 테스트 항목
+
+### Core/Handlers/Update — TC 12개 / 검증 항목 33개 (VS, Windows)
 
 TC 함수는 12개이며, TC1이 이벤트 타입 15개를 루프로 순회하기 때문에
 실제 `CHECK()` 실행 횟수는 33번입니다.
@@ -209,3 +351,18 @@ TC 함수는 12개이며, TC1이 이벤트 타입 15개를 루프로 순회하�
 | TC11 | 3  | 핸들러 미등록 타입 경계 확인 (BattlePass / Gacha / FullBanner) |
 | TC12 | 1  | RepeatAttendance MaxStep 리셋 감지 |
 | **합계** | **33** | |
+
+### Persistence — TC 4개 / 검증 항목 11개 (크로스플랫폼, g++ + ThreadSanitizer)
+
+| TC | CHECK 수 | 항목 |
+|----|----------|------|
+| TC1 | 6 | 메인 스레드 반영 경계 (ProcessCompletions 호출 전/후 상태 검증) |
+| TC2 | 2 | 신규 유저(DB에 데이터 없음) 처리 |
+| TC3 | 1 | user == nullptr 방어 |
+| TC4 | 2 | 유저 20명 동시 로그인 — 결과 교차 오염 없음 |
+| **합계** | **11** | |
+
+Network(IOCP) 계층은 실제 소켓 통신을 필요로 해 이 저장소만으로는 자동화된
+단위 테스트를 구성하기 어렵다고 판단해 별도 테스트를 두지 않았습니다. 대신
+코드 자체에 설계 의도와 각 분기의 이유를 주석으로 남겨, 리뷰 시 흐름을
+따라가기 쉽도록 했습니다.

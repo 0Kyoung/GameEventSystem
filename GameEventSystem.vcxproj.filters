@@ -13,6 +13,12 @@
     <Filter Include="Test">
       <UniqueIdentifier>{1140db25-2b01-49a5-bc3f-89469b3358a5}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Persistence">
+      <UniqueIdentifier>{7f2a1e3d-9c4b-4a6e-8d1f-2b6c5e7a9d10}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Network">
+      <UniqueIdentifier>{a3d8c1f0-5e6b-4d2a-9f3c-1e8b4a7d6c22}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Core\EventHandlerRegistry.cpp">
@@ -47,6 +53,30 @@
     </ClCompile>
     <ClCompile Include="Update\EventLoginSyncer.cpp">
       <Filter>Update</Filter>
+    </ClCompile>
+    <ClCompile Include="Persistence\AsyncDbJobQueue.cpp">
+      <Filter>Persistence</Filter>
+    </ClCompile>
+    <ClCompile Include="Persistence\DbTypes.cpp">
+      <Filter>Persistence</Filter>
+    </ClCompile>
+    <ClCompile Include="Persistence\EventDbBridge.cpp">
+      <Filter>Persistence</Filter>
+    </ClCompile>
+    <ClCompile Include="Persistence\MySqlConnectionPool.cpp">
+      <Filter>Persistence</Filter>
+    </ClCompile>
+    <ClCompile Include="Network\IoCompletionPort.cpp">
+      <Filter>Network</Filter>
+    </ClCompile>
+    <ClCompile Include="Network\NetworkServer.cpp">
+      <Filter>Network</Filter>
+    </ClCompile>
+    <ClCompile Include="Network\PacketRouter.cpp">
+      <Filter>Network</Filter>
+    </ClCompile>
+    <ClCompile Include="Network\Session.cpp">
+      <Filter>Network</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -98,8 +128,44 @@
     <ClInclude Include="Update\EventLoginSyncer.h">
       <Filter>Update</Filter>
     </ClInclude>
+    <ClInclude Include="Persistence\AsyncDbJobQueue.h">
+      <Filter>Persistence</Filter>
+    </ClInclude>
+    <ClInclude Include="Persistence\DbTypes.h">
+      <Filter>Persistence</Filter>
+    </ClInclude>
+    <ClInclude Include="Persistence\EventDbBridge.h">
+      <Filter>Persistence</Filter>
+    </ClInclude>
+    <ClInclude Include="Persistence\MockDb.h">
+      <Filter>Persistence</Filter>
+    </ClInclude>
+    <ClInclude Include="Persistence\MySqlConnectionPool.h">
+      <Filter>Persistence</Filter>
+    </ClInclude>
+    <ClInclude Include="Network\IoCompletionPort.h">
+      <Filter>Network</Filter>
+    </ClInclude>
+    <ClInclude Include="Network\IoContext.h">
+      <Filter>Network</Filter>
+    </ClInclude>
+    <ClInclude Include="Network\NetworkServer.h">
+      <Filter>Network</Filter>
+    </ClInclude>
+    <ClInclude Include="Network\PacketDefs.h">
+      <Filter>Network</Filter>
+    </ClInclude>
+    <ClInclude Include="Network\PacketRouter.h">
+      <Filter>Network</Filter>
+    </ClInclude>
+    <ClInclude Include="Network\Session.h">
+      <Filter>Network</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="README.md" />
+    <None Include="Test\PersistenceTest.cpp">
+      <Filter>Test</Filter>
+    </None>
   </ItemGroup>
 </Project>

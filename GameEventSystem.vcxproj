@@ -76,7 +76,7 @@
       <Optimization>Disabled</Optimization>
       <SDLCheck>true</SDLCheck>
       <ConformanceMode>true</ConformanceMode>
-      <PreprocessorDefinitions>GAME_EVENT_TEST;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>GAME_EVENT_TEST;DB_TEST;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <LanguageStandard>stdcpp17</LanguageStandard>
       <AdditionalOptions>/utf-8 %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
@@ -90,7 +90,7 @@
       <Optimization>Disabled</Optimization>
       <SDLCheck>true</SDLCheck>
       <ConformanceMode>true</ConformanceMode>
-      <PreprocessorDefinitions>GAME_EVENT_TEST;_MBCS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>GAME_EVENT_TEST;DB_TEST;_MBCS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <LanguageStandard>stdcpp17</LanguageStandard>
       <AdditionalOptions>/utf-8 %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
@@ -140,6 +140,14 @@
     <ClCompile Include="Update\EventInfoPacketBuilder.cpp" />
     <ClCompile Include="Update\EventLoginSyncer.cpp" />
     <ClCompile Include="Update\EventUpdateChecker.cpp" />
+    <ClCompile Include="Persistence\AsyncDbJobQueue.cpp" />
+    <ClCompile Include="Persistence\DbTypes.cpp" />
+    <ClCompile Include="Persistence\EventDbBridge.cpp" />
+    <ClCompile Include="Persistence\MySqlConnectionPool.cpp" />
+    <ClCompile Include="Network\IoCompletionPort.cpp" />
+    <ClCompile Include="Network\NetworkServer.cpp" />
+    <ClCompile Include="Network\PacketRouter.cpp" />
+    <ClCompile Include="Network\Session.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Core\EventContext.h" />
@@ -158,9 +166,21 @@
     <ClInclude Include="Update\EventInfoPacketBuilder.h" />
     <ClInclude Include="Update\EventLoginSyncer.h" />
     <ClInclude Include="Update\EventUpdateChecker.h" />
+    <ClInclude Include="Persistence\AsyncDbJobQueue.h" />
+    <ClInclude Include="Persistence\DbTypes.h" />
+    <ClInclude Include="Persistence\EventDbBridge.h" />
+    <ClInclude Include="Persistence\MockDb.h" />
+    <ClInclude Include="Persistence\MySqlConnectionPool.h" />
+    <ClInclude Include="Network\IoCompletionPort.h" />
+    <ClInclude Include="Network\IoContext.h" />
+    <ClInclude Include="Network\NetworkServer.h" />
+    <ClInclude Include="Network\PacketDefs.h" />
+    <ClInclude Include="Network\PacketRouter.h" />
+    <ClInclude Include="Network\Session.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="README.md" />
+    <None Include="Test\PersistenceTest.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
